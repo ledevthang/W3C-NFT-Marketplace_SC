@@ -1,0 +1,25 @@
+{
+  "name": "w3c-nft-marketplace_sc",
+  "version": "1.0.0",
+  "description": "W3C-NFT-Marketplace_SC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ledevthang/W3C-NFT-Marketplace_SC.git"
+  },
+  "author": "tungla",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ledevthang/W3C-NFT-Marketplace_SC/issues"
+  },
+  "homepage": "https://github.com/ledevthang/W3C-NFT-Marketplace_SC#readme",
+  "devDependencies": {
+    "hardhat": "^2.12.4"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.0"
+  }
+}

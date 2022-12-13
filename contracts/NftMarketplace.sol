@@ -160,7 +160,7 @@ contract NftMarketplace is Pausable {
         address _seller = msg.sender;
         require(listing[_nftAddress][_tokenId].listed == false, "listing nft");
         require(_owns(_nftAddress, _seller, _tokenId), "Not own nft");
-        _approve(_nftAddress, _tokenId);
+        _checkApproved(_nftAddress, _tokenId);
         Auction memory _auction = Auction(
             _seller,
             uint128(_startingPrice),
@@ -303,24 +303,26 @@ contract NftMarketplace is Pausable {
     /// @dev Approve to transfer nft when win auction
     /// @param _nftAddress - The address of the NFT.
     /// @param _tokenId - ID of token whose approval to verify.
-    function _approve(
+    function _checkApproved(
         address _nftAddress,
         uint256 _tokenId
-    ) internal {
+    ) internal view {
         IERC721 _nftContract = _getNftContract(_nftAddress);
-        _nftContract.approve(address(this), _tokenId);
+        require(_nftContract.getApproved(_tokenId) == address(this), "Marketplace not approved for this nft");
     }
 
-    // win auction
-    function perchase_nft(address _nftAddress, uint256 _tokenId) public {
+    /// @dev For User who win auction can claim nft
+    /// @param _nftAddress - The address of the NFT.
+    /// @param _tokenId - ID of token to bid on.
+    function purchase_nft(address _nftAddress, uint256 _tokenId) public {
         address _buyer = msg.sender;
         IERC721 _nftContract = _getNftContract(_nftAddress);
         Auction memory _auction = auctions[_nftAddress][_tokenId];
         require(!_isOnAuction(_auction), "auction is on");
+        require(_auction.highestBidder == _buyer, "not winner");
         address _seller = _auction.seller;
         _nftContract.transferFrom(_seller, _buyer, _tokenId);
 
-        IERC20(_auction.token).approve(address(this), _auction.highestPrice);
         IERC20(_auction.token).safeTransferFrom(
             _buyer,
             _seller,
@@ -331,7 +333,11 @@ contract NftMarketplace is Pausable {
     }
 
     // BUY FIXED PRICE
-
+    /// @dev List nft for sale on marketplace
+    /// @param _nftAddress - The address of the NFT.
+    /// @param _tokenId - ID of token to bid on.
+    /// @param _price - amount of token to sell
+    /// @param _token - address of token to receive when nft is sold 
     function list_nft(
         address _nftAddress,
         uint256 _tokenId,
@@ -340,7 +346,7 @@ contract NftMarketplace is Pausable {
     ) public {
         address _seller = msg.sender;
         require(_owns(_nftAddress, _seller, _tokenId), "Not own nft");
-        _approve(_nftAddress, _tokenId);
+        // _approve(_nftAddress, _tokenId);
         Listing memory _listing = Listing(
             uint128(_price),
             false,
@@ -350,6 +356,10 @@ contract NftMarketplace is Pausable {
         _addListing(_nftAddress, _tokenId, _listing, _seller, _token);
     }
 
+    /// @dev Change price to sell nft on marketplace
+    /// @param _nftAddress - The address of the NFT.
+    /// @param _tokenId - ID of token to bid on.
+    /// @param _price - amount of token to sell
     function set_price(
         address _nftAddress,
         uint256 _tokenId,
@@ -363,6 +373,10 @@ contract NftMarketplace is Pausable {
         emit SetPrice(_nftAddress, _tokenId, _price);
     }
 
+    /// @dev Buy nft on marketplace
+    /// @param _nftAddress - The address of the NFT.
+    /// @param _tokenId - ID of token to bid on.
+    /// @param _price - amount of token to sell
     function buy_nft(
         address _nftAddress,
         uint256 _tokenId,
@@ -375,7 +389,6 @@ contract NftMarketplace is Pausable {
         address _seller = _listing.seller;
         _nftContract.transferFrom(_seller, _buyer, _tokenId);
 
-        IERC20(_listing.token).approve(address(this), _price);
         IERC20(_listing.token).safeTransferFrom(_buyer, _seller, _price);
 
         emit BuySucceed(_nftAddress, _tokenId, _price);

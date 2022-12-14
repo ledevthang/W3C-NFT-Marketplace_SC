@@ -53,21 +53,7 @@ contract NftMarketplace is Pausable {
         address _seller
     );
 
-    event ListingCreated(
-        address indexed _nftAddress,
-        uint256 indexed _tokenId,
-        uint256 _price,
-        address _seller,
-        address _token
-    );
-
     event BuySucceed(
-        address indexed _nftAddress,
-        uint256 indexed _tokenId,
-        uint256 _price
-    );
-
-    event SetPrice(
         address indexed _nftAddress,
         uint256 indexed _tokenId,
         uint256 _price
@@ -266,28 +252,6 @@ contract NftMarketplace is Pausable {
         );
     }
 
-    /// @dev Adds an listing to the list of open listings. Also fires the
-    ///  ListingCreated event.
-    /// @param _tokenId The ID of the token to be put on auction.
-    /// @param _listing Auction to add.
-    function _addListing(
-        address _nftAddress,
-        uint256 _tokenId,
-        Listing memory _listing,
-        address _seller,
-        address _token
-    ) internal {
-        listing[_nftAddress][_tokenId] = _listing;
-
-        emit ListingCreated(
-            _nftAddress,
-            _tokenId,
-            uint256(_listing.price),
-            _seller,
-            _token
-        );
-    }
-
     /// @dev Removes an auction from the list of open auctions.
     /// @param _tokenId - ID of NFT on auction.
     function _removeAuction(address _nftAddress, uint256 _tokenId) internal {
@@ -303,18 +267,21 @@ contract NftMarketplace is Pausable {
     /// @dev Approve to transfer nft when win auction
     /// @param _nftAddress - The address of the NFT.
     /// @param _tokenId - ID of token whose approval to verify.
-    function _checkApproved(
-        address _nftAddress,
-        uint256 _tokenId
-    ) internal view {
+    function _checkApproved(address _nftAddress, uint256 _tokenId)
+        internal
+        view
+    {
         IERC721 _nftContract = _getNftContract(_nftAddress);
-        require(_nftContract.getApproved(_tokenId) == address(this), "Marketplace not approved for this nft");
+        require(
+            _nftContract.getApproved(_tokenId) == address(this),
+            "Marketplace not approved for this nft"
+        );
     }
 
     /// @dev For User who win auction can claim nft
     /// @param _nftAddress - The address of the NFT.
     /// @param _tokenId - ID of token to bid on.
-    function purchase_nft(address _nftAddress, uint256 _tokenId) public {
+    function purchaseNft(address _nftAddress, uint256 _tokenId) external {
         address _buyer = msg.sender;
         IERC721 _nftContract = _getNftContract(_nftAddress);
         Auction memory _auction = auctions[_nftAddress][_tokenId];
@@ -332,64 +299,22 @@ contract NftMarketplace is Pausable {
         emit BuySucceed(_nftAddress, _tokenId, _auction.highestPrice);
     }
 
-    // BUY FIXED PRICE
-    /// @dev List nft for sale on marketplace
-    /// @param _nftAddress - The address of the NFT.
-    /// @param _tokenId - ID of token to bid on.
-    /// @param _price - amount of token to sell
-    /// @param _token - address of token to receive when nft is sold 
-    function list_nft(
-        address _nftAddress,
-        uint256 _tokenId,
-        uint256 _price,
-        address _token
-    ) public {
-        address _seller = msg.sender;
-        require(_owns(_nftAddress, _seller, _tokenId), "Not own nft");
-        // _approve(_nftAddress, _tokenId);
-        Listing memory _listing = Listing(
-            uint128(_price),
-            false,
-            _seller,
-            _token
-        );
-        _addListing(_nftAddress, _tokenId, _listing, _seller, _token);
-    }
-
-    /// @dev Change price to sell nft on marketplace
-    /// @param _nftAddress - The address of the NFT.
-    /// @param _tokenId - ID of token to bid on.
-    /// @param _price - amount of token to sell
-    function set_price(
-        address _nftAddress,
-        uint256 _tokenId,
-        uint256 _price
-    ) public {
-        address _seller = msg.sender;
-        require(listing[_nftAddress][_tokenId].seller == _seller, "not seller");
-        require(listing[_nftAddress][_tokenId].price > _price);
-        listing[_nftAddress][_tokenId].price = _price;
-
-        emit SetPrice(_nftAddress, _tokenId, _price);
-    }
-
     /// @dev Buy nft on marketplace
     /// @param _nftAddress - The address of the NFT.
     /// @param _tokenId - ID of token to bid on.
     /// @param _price - amount of token to sell
-    function buy_nft(
+    function buyNft(
         address _nftAddress,
         uint256 _tokenId,
-        uint256 _price
-    ) public {
+        uint256 _price,
+        address _token,
+        address _seller
+    ) external {
         address _buyer = msg.sender;
         IERC721 _nftContract = _getNftContract(_nftAddress);
-        Listing memory _listing = listing[_nftAddress][_tokenId];
-        require(_price >= _listing.price);
-        address _seller = _listing.seller;
         _nftContract.transferFrom(_seller, _buyer, _tokenId);
 
-        IERC20(_listing.token).safeTransferFrom(_buyer, _seller, _price);
+        IERC20(_token).safeTransferFrom(_buyer, _seller, _price);
 
         emit BuySucceed(_nftAddress, _tokenId, _price);
     }

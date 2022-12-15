@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// @title Clock auction for non-fungible tokens.
 contract NftMarketplace is Pausable {
@@ -37,6 +38,10 @@ contract NftMarketplace is Pausable {
     // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
     // Values 0-10,000 map to 0%-100%
     uint256 public ownerCut;
+
+    address public signer;
+
+    uint256 public nonce;
 
     // Map from token ID to their corresponding auction.
     mapping(address => mapping(uint256 => Auction)) public auctions;
@@ -71,6 +76,8 @@ contract NftMarketplace is Pausable {
     constructor(uint256 _ownerCut) {
         require(_ownerCut <= 10000);
         ownerCut = _ownerCut;
+        signer = msg.sender;
+        nonce = 0;
     }
 
     /// @dev DON'T give me your money.
@@ -308,14 +315,43 @@ contract NftMarketplace is Pausable {
         uint256 _tokenId,
         uint256 _price,
         address _token,
-        address _seller
+        address _seller,
+        bytes calldata _signature
     ) external {
+        require(
+            _verifySignature(getMessageHash(), _signature) == true,
+            "invalid input"
+        );
         address _buyer = msg.sender;
         IERC721 _nftContract = _getNftContract(_nftAddress);
         _nftContract.transferFrom(_seller, _buyer, _tokenId);
 
         IERC20(_token).safeTransferFrom(_buyer, _seller, _price);
 
+        nonce++;
         emit BuySucceed(_nftAddress, _tokenId, _price);
+    }
+
+    // Verify signature function
+    function _verifySignature(bytes32 _msgHash, bytes calldata signature)
+        public
+        view
+        returns (bool)
+    {
+        bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(_msgHash);
+
+        return getSignerAddress(ethSignedMessageHash, signature) == signer;
+    }
+
+    function getSignerAddress(bytes32 _messageHash, bytes memory _signature)
+        public
+        pure
+        returns (address)
+    {
+        return ECDSA.recover(_messageHash, _signature);
+    }
+
+    function getMessageHash() public view returns (bytes32) {
+        return keccak256(abi.encodePacked(nonce));
     }
 }

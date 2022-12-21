@@ -28,13 +28,6 @@ contract NftMarketplace is Pausable {
         bool ended;
     }
 
-    struct Listing {
-        uint256 price;
-        bool listed;
-        address seller;
-        address token;
-    }
-
     // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
     // Values 0-10,000 map to 0%-100%
     uint256 public ownerCut;
@@ -45,9 +38,6 @@ contract NftMarketplace is Pausable {
 
     // Map from token ID to their corresponding auction.
     mapping(address => mapping(uint256 => Auction)) public auctions;
-
-    // Map from token ID to listing price
-    mapping(address => mapping(uint256 => Listing)) public listing;
 
     event AuctionCreated(
         address indexed _nftAddress,
@@ -151,7 +141,6 @@ contract NftMarketplace is Pausable {
         canBeStoredWith64Bits(_duration)
     {
         address _seller = msg.sender;
-        require(listing[_nftAddress][_tokenId].listed == false, "listing nft");
         require(_owns(_nftAddress, _seller, _tokenId), "Not own nft");
         _checkApproved(_nftAddress, _tokenId);
         Auction memory _auction = Auction(

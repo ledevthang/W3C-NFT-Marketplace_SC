@@ -143,6 +143,7 @@ contract NftMarketplace {
         require(_listing.isAuction == true, "Not auction");
         require(_isOnListing(_listing), "Auction not on");
         require(_price > _listing.highestPrice, "Invalid price");
+        require(_listing.seller != msg.sender, "Invalid bid");
         _listing.highestPrice = _price;
         _listing.highestBidder = msg.sender;
     }
@@ -264,5 +265,15 @@ contract NftMarketplace {
 
         _cancelListing(_nftAddress, _tokenId);
         emit BuySucceed(_nftAddress, _tokenId, _listing.startingPrice);
+    }
+
+    /// @dev Buy nft on marketplace
+    /// @param _nftAddress - The address of the NFT.
+    /// @param _tokenId - ID of token to bid on.
+    function setPrice(address _nftAddress, uint256 _tokenId, uint128 _price) external {
+        Listing storage _listing = listings[_nftAddress][_tokenId];
+        require(_listing.isAuction == false, "is auction");
+        require(_listing.seller == msg.sender, "not authorized");
+        _listing.startingPrice = _price;
     }
 }

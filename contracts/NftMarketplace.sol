@@ -227,7 +227,7 @@ contract NftMarketplace {
         address _buyer = msg.sender;
         IERC721 _nftContract = _getNftContract(_nftAddress);
         Listing memory _listing = listings[_nftAddress][_tokenId];
-        require(!_isOnListing(_listing), "listing is on");
+        require(!_isOnListing(_listing) && _listing.highestPrice > 0, "listing is on");
         require(_listing.highestBidder == _buyer, "not winner");
         require(_listing.isAuction == true, "not auction");
         address _seller = _listing.seller;

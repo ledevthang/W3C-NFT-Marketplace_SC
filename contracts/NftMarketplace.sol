@@ -160,7 +160,7 @@ contract NftMarketplace {
     /// @param _tokenId - ID of token on listing
     function cancelListing(address _nftAddress, uint256 _tokenId) external {
         Listing memory _listing = listings[_nftAddress][_tokenId];
-        require(_isOnListing(_listing), "Auction not on");
+        // require(_isOnListing(_listing), "Auction not on");
         require(msg.sender == _listing.seller, "Not authorized");
         _cancelListing(_nftAddress, _tokenId);
     }

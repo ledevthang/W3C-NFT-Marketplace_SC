@@ -22,6 +22,7 @@ contract NftMarketplace {
         // Time when listing started
         // NOTE: 0 if this listing has been concluded
         uint64 startedAt;
+        uint64 endAt;
         address highestBidder;
         uint256 highestPrice;
         bool isAuction;
@@ -95,7 +96,9 @@ contract NftMarketplace {
         uint256 _startingPrice,
         uint256 _duration,
         address _token,
-        bool _isAuction
+        bool _isAuction,
+        uint64 _startedAt,
+        uint64 _endAt
     )
         external
         canBeStoredWith128Bits(_startingPrice)
@@ -109,7 +112,8 @@ contract NftMarketplace {
             uint128(_startingPrice),
             _token,
             uint64(_duration),
-            uint64(block.timestamp),
+            _startedAt,
+            _endAt,
             address(0),
             _startingPrice,
             _isAuction
@@ -168,7 +172,7 @@ contract NftMarketplace {
         view
         returns (bool)
     {
-        return (block.timestamp - _listing.startedAt < _listing.duration);
+        return (block.timestamp > _listing.startedAt && block.timestamp < _listing.endAt);
     }
 
     /// @dev Gets the NFT object from an address, validating that implementsERC721 is true.
